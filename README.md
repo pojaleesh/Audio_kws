@@ -68,3 +68,20 @@ Take the mean in the columns of MFCC
 - Optimizer - RMSprop, lr = 0.00001
 
 ![model_3](https://user-images.githubusercontent.com/55574235/99855835-e40a0600-2bb1-11eb-9a46-418f914a2dae.png)
+
+### Conv2D models
+
+##### Model 1
+
+- Conv2D → BatchNormalization → ReLU → MaxPool2D → Dropout(0.2) - x4 - → Flatten → Dense → Dropout(0.2) → BatchNormalization → ReLU → Dropout(0.2)
+- Optimizer - Adam, lr = 0.001
+- Optimizer - Adam, lr = 0.01
+
+##### Model 2
+
+- Conv2D → BatchNormalization → ReLU → MaxPool2D - x4 - → Flatten → Dense → Dropout(0.2) → BatchNormalization → ReLU → Dropout(0.2)
+- Optimizer - Adam, lr = 0.001
+
+###### Comparison Model 1 and Model 2
+
+![comparison_1](https://user-images.githubusercontent.com/55574235/103152833-e0bbf880-47b5-11eb-8782-5fed8c5c486a.png)
