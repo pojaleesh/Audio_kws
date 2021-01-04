@@ -71,7 +71,7 @@ Take the mean in the columns of MFCC
 
 ### Conv2D models
 
-##### Model 1
+##### Main_Model 1
 
 - Conv2D → BatchNormalization → ReLU → MaxPool2D → Dropout(0.2) - x4 - → Flatten → Dense → Dropout(0.2) → BatchNormalization → ReLU → Dropout(0.2)
 - Optimizer - Adam, lr = 0.001
@@ -82,6 +82,18 @@ Take the mean in the columns of MFCC
 - Conv2D → BatchNormalization → ReLU → MaxPool2D - x4 - → Flatten → Dense → Dropout(0.2) → BatchNormalization → ReLU → Dropout(0.2)
 - Optimizer - Adam, lr = 0.001
 
-###### Comparison Model 1 and Model 2
+###### Comparison Main_Model 1 and Model 2
 
-![comparison_1](https://user-images.githubusercontent.com/55574235/103152833-e0bbf880-47b5-11eb-8782-5fed8c5c486a.png)
+![comparison_1](https://user-images.githubusercontent.com/55574235/103588931-7a9d4700-4f14-11eb-8946-a211b67af9f6.png)
+
+##### Main_model_2
+
+- Conv2D → BatchNormalization → ReLU → MaxPool2D → Dropout(0.2) - x5 - → Flatten → Dense → Dropout(0.2) → BatchNormalization → ReLU → Dropout(0.5)
+- Optimizer - Adam, lr = 0.001
+
+![Main_model_2](https://user-images.githubusercontent.com/55574235/103589192-19c23e80-4f15-11eb-9acd-c221ec8c2379.png)
+
+###### Comparison Main_Model 1 and Model 2
+
+![comparison_2](https://user-images.githubusercontent.com/55574235/103589175-0adb8c00-4f15-11eb-9bc5-a4912a89a59d.png)
+
