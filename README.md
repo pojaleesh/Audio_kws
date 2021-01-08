@@ -13,7 +13,7 @@ The goal is to determine emotion and biometrics by voice message.
 
 ![data_hist](https://user-images.githubusercontent.com/55574235/99854703-8aa0d780-2baf-11eb-9be7-95f9ef9983a0.png)
 
-### MFCC
+### Data representation. MFCC
 
 #### Preprocessing
 Let's split the entire track into small time intervals - frames. Moreover, frames can overlap each other. <br/>
@@ -97,3 +97,17 @@ Take the mean in the columns of MFCC
 
 ![comparison_2](https://user-images.githubusercontent.com/55574235/103589175-0adb8c00-4f15-11eb-9bc5-a4912a89a59d.png)
 
+## Wake up words(Key words) recognition
+
+The goal is to highlight key words in audio.
+
+### Datasets
+
+- Tensorflow dataset. https://www.kaggle.com/c/tensorflow-speech-recognition-challenge/data
+
+The labels words, that i need to predict in are : yes, no, up, down, left, right, on, off, stop, go.
+
+![data_hist_1](https://user-images.githubusercontent.com/55574235/103959642-78d4bd00-517a-11eb-8741-32d13473121f.png)
+![data_hist_2](https://user-images.githubusercontent.com/55574235/103959663-84c07f00-517a-11eb-9a71-011165493fae.png)
+
+### Data representation. Spectogram
