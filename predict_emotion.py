@@ -1,34 +1,35 @@
-import keras
-from keras import optimizers
-from keras.models import Sequential, Model, model_from_json
-from keras.layers import Dense, Embedding
-from keras.layers import Input, Flatten, Dropout, Activation, BatchNormalization
-from keras.layers import Convolution2D, MaxPool2D
+from tensorflow.keras import optimizers
+from tensorflow.keras.models import Sequential, Model, model_from_json
+from tensorflow.keras.layers import Dense, Embedding
+from tensorflow.keras.layers import Input, Flatten, Dropout, Activation, BatchNormalization
+from tensorflow.keras.layers import Conv2D, MaxPool2D
+from sklearn.preprocessing import LabelEncoder
 
 import librosa
 import matplotlib.pyplot as plt
 from matplotlib.pyplot import specgram
 import pickle
+import numpy as np
 
 def make_model(input_shape):
     nclass = 14
     inp = Input(input_shape)
-    x = Convolution2D(32, (4,10), padding="same")(inp)
+    x = Conv2D(32, (4,10), padding="same")(inp)
     x = BatchNormalization()(x)
     x = Activation("relu")(x)
     x = MaxPool2D()(x)
     x = Dropout(rate=0.2)(x)
-    x = Convolution2D(32, (4,10), padding="same")(x)
+    x = Conv2D(32, (4,10), padding="same")(x)
     x = BatchNormalization()(x)
     x = Activation("relu")(x)
     x = MaxPool2D()(x)
     x = Dropout(rate=0.2)(x)
-    x = Convolution2D(32, (4,10), padding="same")(x)
+    x = Conv2D(32, (4,10), padding="same")(x)
     x = BatchNormalization()(x)
     x = Activation("relu")(x)
     x = MaxPool2D()(x)
     x = Dropout(rate=0.2)(x)
-    x = Convolution2D(32, (4,10), padding="same")(x)
+    x = Conv2D(32, (4,10), padding="same")(x)
     x = BatchNormalization()(x)
     x = Activation("relu")(x)
     x = MaxPool2D()(x)
@@ -69,9 +70,9 @@ predictModel.load_weights("Emotion_biometric_recognition/models/Main_model_1.h5"
 opt = optimizers.Adam(0.001)
 predictModel.compile(optimizer = opt, loss = 'binary_crossentropy', metrics = ["accuracy"])
 
-def make_predict(path, flags):
+def make_predict(flags):
     lb, mean, std = load_data(flags)
-    X, sample_rate = librosa.load(path, res_type='kaiser_fast', duration=2.5, sr=44100, offset=0.5)
+    X, sample_rate = librosa.load(flags['path'], res_type='kaiser_fast', duration=2.5, sr=44100, offset=0.5)
     mfccs = librosa.feature.mfcc(y=X, sr=sample_rate, n_mfcc=30)
     if mfccs.shape[1] < 216:
         b = np.zeros((30, 216 - mfccs.shape[1]))
@@ -80,8 +81,8 @@ def make_predict(path, flags):
     mfccs = (mfccs - mean)/std
     mffcs = np.array(mfccs)
     mfccs = mfccs.reshape((mfccs.shape[0], mfccs.shape[1], mfccs.shape[2], 1))
-    newpred = predictModel.predict(mfccs, batch_size=16, verbose=1)
-    final = newpred.argmax(axis=1)
-    final = final.astype(int).flatten()
-    final = (lb.inverse_transform((final)))
-    return final
+    prediction = predictModel.predict(mfccs, batch_size=16, verbose=1)
+    max_p = prediction.max(axis=1)
+    max_index = prediction.argmax(axis=1)[0]
+    print(prediction)
+    return max_p, lb[max_index]

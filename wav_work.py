@@ -3,22 +3,18 @@ import matplotlib.image as mpimg
 from scipy.io import wavfile
 import soundfile as sf
 import subprocess
+import numpy as np
 
 def build():
     src_filename = '1.oga'
-    dest_filename = 'temp.ogg'
-    process = subprocess.call(['ffmpeg', '-i', src_filename, dest_filename], shell=True)
-    src_filename = 'temp.ogg'
     dest_filename = 'temp.wav'
-    process = subprocess.call(['ffmpeg', '-i', src_filename, dest_filename], shell=True)
+    process = subprocess.run(['ffmpeg', '-i', src_filename, dest_filename])
     
 
 def delete():
     src_filename = 'temp.wav'
-    process = subprocess.call(['del', src_filename], shell=True)
-    src_filename = 'temp.ogg'
-    process = subprocess.call(['del', src_filename], shell=True)
-
+    process = subprocess.run(['rm', src_filename])
+ 
     
 def read():
     samplerate, data = wavfile.read('temp.wav')
@@ -36,7 +32,6 @@ def get_average_amplitude(data):
 def plot_1(samplerate, data, length):
     time = np.linspace(0., length, len(data))
     plt.plot(time, data, label="Left channel")
-    plt.legend()
     plt.xlabel("Time [s]")
     plt.ylabel("Amplitude")
     plt.savefig('plot1.png', dpi=300, bbox_inches='tight')
@@ -56,6 +51,10 @@ def solve():
     samplerate, data = read()
     length = get_lentgh(samplerate, data)
     average_amplitude = get_average_amplitude(data)
-    plot_1(samplerate, data, length)
-    plot_2(samplerate, data)
+    #plot_1(samplerate, data, length)
+    #plot_2(samplerate, data)
     return average_amplitude
+
+
+if __name__ == '__main__':
+    main()
