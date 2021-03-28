@@ -70,7 +70,7 @@ predictModel.load_weights("Emotion_biometric_recognition/models/Main_model_1.h5"
 opt = optimizers.Adam(0.001)
 predictModel.compile(optimizer = opt, loss = 'binary_crossentropy', metrics = ["accuracy"])
 
-def make_predict(flags):
+def make_predict_emotion(flags):
     lb, mean, std = load_data(flags)
     X, sample_rate = librosa.load(flags['path'], res_type='kaiser_fast', duration=2.5, sr=44100, offset=0.5)
     mfccs = librosa.feature.mfcc(y=X, sr=sample_rate, n_mfcc=30)

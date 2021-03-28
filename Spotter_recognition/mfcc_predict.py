@@ -13,8 +13,7 @@ import tensorflow as tf
 import IPython.display as ipd
 import random
 from pydub import AudioSegment
-from models.cnn import CNN_model
-from service.Mfcc import get_mfcc
+from Spotter_recognition.service.Mfcc import get_mfcc
 
 def load_data(flags):
     filename = flags['labels']
@@ -37,5 +36,5 @@ def make_mfcc_prediction(model, flags, mfcc):
     mfcc = np.array(mfcc)
     prediction = model.predict(mfcc, batch_size=16, verbose=1)
     max_p = prediction.max(axis=1)
-    max_index = prediction.argmax(axis=1)
-    return max_p, lb.classes_[max_index][0]
+    max_index = prediction.argmax(axis=1)[0]
+    return max_p, lb[max_index]

@@ -6,10 +6,15 @@ import subprocess
 from wav_work import solve, delete
 from predict_emotion import make_predict
 from telebot import types
+from Spotter_recognition.predict_spotter import make_predict_spotter
 
 
 token = '1292656407:AAGKUjDoTHKEYpWAc8hi_mu-i7zUizbFgME'
 bot = telebot.TeleBot('1292656407:AAGKUjDoTHKEYpWAc8hi_mu-i7zUizbFgME')
+model_cnn = tf.keras.models.load_model('../../saved_models/CNN')
+model_crnn = tf.keras.models.load_model('../../saved_models/CRNN')
+model_at_rnn = tf.keras.models.load_model('../../saved_models/AT_RNN')
+model_ds_cnn = tf.keras.models.load_model('../../saved_models/DS_CNN')
 
 flags_emotion = {
     'model': None,
@@ -23,11 +28,16 @@ flags_spotter = {
     'model': None,
     'mean': None,
     'std': None,
-    'offset': 0,
-    'duration': 1,
-    'sample_rate': 44100,
-    'n_mfcc': 40,
-    'columns': 61,
+    'path': 'temp.wav',
+    'mfcc': {
+        'offset': 0,
+        'duration': 1,
+        'sample_rate': 44100,
+        'n_mfcc': 40,
+        'columns': 61
+    },
+    'shift': 200,
+    'frame_lenght': 1000,
 }
 
 @bot.message_handler(commands=['start'])
@@ -56,53 +66,68 @@ def callback_worker(call):
     global flags_spotter
     if call.data == "CNN":
         flags_spotter['model'] = 'CNN'
+        flags_spotter['mfcc']['n_mfcc'] = 30
+        flags_spotter['std'] = 'spotter_data_service/std_30'
+        flags_spotter['mean'] = 'spotter_data_service/mean_30'
         bot.send_message(
             call.message.chat.id, 
             'You pick a CNN model'
         );
         bot.send_message(
-            call.message.char.id, 
-            'Here you can a decription : https://arxiv.org/pdf/1711.07128.pdf'
+            call.message.chat.id, 
+            'Here you can read a decription : https://arxiv.org/pdf/1711.07128.pdf'
         )
     elif call.data == "CRNN":
         flags_spotter['model'] = 'CRNN'
+        flags_spotter['mfcc']['n_mfcc'] = 30
+        flags_spotter['std'] = 'spotter_data_service/std_30'
+        flags_spotter['mean'] = 'spotter_data_service/mean_30'
         bot.send_message(
             call.message.chat.id, 
             'You pick a CRNN model'
         );
         bot.send_message(
-            call.message.char.id, 
-            'Here you can a decription : https://arxiv.org/pdf/1711.07128.pdf'
+            call.message.chat.id, 
+            'Here you can read a decription : https://arxiv.org/pdf/1711.07128.pdf'
         )
     elif call.data == "AT_RNN":
         flags_spotter['model'] = 'ATT_RNN'
+        flags_spotter['mfcc']['n_mfcc'] = 40
+        flags_spotter['std'] = 'spotter_data_service/std_40'
+        flags_spotter['mean'] = 'spotter_data_service/mean_40'
         bot.send_message(
             call.message.chat.id, 
             'You pick a ATT_RNN model'
         );
         bot.send_message(
-            call.message.char.id, 
-            'Here you can a decription : https://arxiv.org/pdf/1808.08929.pdf'
+            call.message.chat.id, 
+            'Here you can read a decription : https://arxiv.org/pdf/1808.08929.pdf'
         )
     elif call.data == "DNN":
         flags_spotter['model'] = 'DNN'
+        flags_spotter['mfcc']['n_mfcc'] = 40
+        flags_spotter['std'] = 'spotter_data_service/std_40'
+        flags_spotter['mean'] = 'spotter_data_service/mean_40'
         bot.send_message(
             call.message.chat.id, 
             'You pick a DNN model'
         );
         bot.send_message(
-            call.message.char.id, 
-            'Here you can a decription : https://arxiv.org/pdf/1711.07128.pdf'
+            call.message.chat.id, 
+            'Here you can read a decription : https://arxiv.org/pdf/1711.07128.pdf'
         )
     elif call.data == "DS_CNN":
         flags_spotter['model'] = 'DS_CNN'
+        flags_spotter['mfcc']['n_mfcc'] = 40
+        flags_spotter['std'] = 'spotter_data_service/std_40'
+        flags_spotter['mean'] = 'spotter_data_service/mean_40'
         bot.send_message(
             call.message.chat.id, 
             'You pick a DS_CNN model'
         );
         bot.send_message(
-            call.message.char.id, 
-            'Here you can a decription : https://arxiv.org/pdf/1711.07128.pdf'
+            call.message.chat.id, 
+            'Here you can read a decription : https://arxiv.org/pdf/1711.07128.pdf'
         )
 
 
@@ -114,7 +139,8 @@ def start_message(message):
 @bot.message_handler(commands=['model'])
 def start_message(message):
     global flags_spotter
-    bot.send_message(message.chat.id, f"Your model for spotter recognition - {flags_spotter['model']}")
+    spotter_model = flags_spotter['model']
+    bot.send_message(message.chat.id, f'Your model for spotter recognition - {spotter_model}')
 
 @bot.message_handler(content_types=['text'])
 def get(message):
@@ -139,9 +165,19 @@ def get_audio(audio):
     #process = subprocess.call(['del', src_filename], shell=True)
     #src_filename = 'plot2.png'
     #process = subprocess.call(['del', src_filename], shell=True)
-    _, res = make_predict(flags_emotion)
+    _, res = make_predict_emotion(flags_emotion)
     gender, emotion = res.split('_')
     bot.send_message(audio.chat.id, f'Your gender - {gender}, your emotion - {emotion}')
+    if flags_spotter['model'] == 'CRNN':
+        indicator, temp = make_predict_spotter(model_crnn, flags_spotter, 0.9)
+    elif flags_spotter['model'] == 'CNN':
+        indicator, temp = make_predict_spotter(model_cnn, flags_spotter, 0.9)
+    elif flags_spotter['model'] == 'AT_RNN':
+        indicator, temp = make_predict_spotter(model_at_rnn, flags_spotter, 0.9)
+    elif flags_spotter['model'] == 'DNN':
+        indicator, temp = make_predict_spotter(model_dnn, flags_spotter, 0.9)
+    elif flags_spotter['model'] == 'DS_CNN'
+         indicator, temp = make_predict_spotter(model_ds_cnn, flags_spotter, 0.9)
     delete()
 
 
