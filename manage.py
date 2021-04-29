@@ -9,8 +9,8 @@ from telebot import types
 from Spotter_recognition.predict_spotter import make_predict_spotter
 import tensorflow as tf
 
-token = '1614991779:AAHzVpGl1ng7HmNHm95WymAUq8AAEkO-xaE'
-bot = telebot.TeleBot('1614991779:AAHzVpGl1ng7HmNHm95WymAUq8AAEkO-xaE')
+token = # fill a token 
+bot = telebot.TeleBot(token)
 model_cnn = tf.keras.models.load_model('../saved_models/CNN')
 model_crnn = tf.keras.models.load_model('../saved_models/CRNN')
 model_at_rnn = tf.keras.models.load_model('../saved_models/AT_RNN')
