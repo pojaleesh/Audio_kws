@@ -4,9 +4,11 @@ from keras.preprocessing import sequence
 from keras.preprocessing.text import Tokenizer
 from keras.preprocessing.sequence import pad_sequences
 from keras.models import Sequential, Model, model_from_json
-from keras.layers import Dense, Embedding, LSTM
-from keras.layers import Input, Flatten, Dropout, Activation, BatchNormalization
-from keras.layers import Convolution2D, MaxPooling2D, AveragePooling2D, ZeroPadding2D, Dropout, MaxPool2D
+from keras.layers import (
+    Input, Flatten, Dropout, Activation, BatchNormalization, DepthwiseConv2D,
+    Convolution2D, MaxPooling2D, AveragePooling2D, ZeroPadding2D, Dropout, MaxPool2D,
+    Dense, Embedding, LSTM
+)
 from keras.utils import np_utils, to_categorical
 from keras.callbacks import ModelCheckpoint
 
