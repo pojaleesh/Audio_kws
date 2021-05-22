@@ -8,13 +8,16 @@ from predict_emotion import make_predict_emotion
 from telebot import types
 from Spotter_recognition.predict_spotter import make_predict_spotter
 import tensorflow as tf
+import os
 
-token = # fill a token 
+
+token = # Your bot token 
 bot = telebot.TeleBot(token)
-model_cnn = tf.keras.models.load_model('../saved_models/CNN')
-model_crnn = tf.keras.models.load_model('../saved_models/CRNN')
-model_at_rnn = tf.keras.models.load_model('../saved_models/AT_RNN')
-model_ds_cnn = tf.keras.models.load_model('../saved_models/DS_CNN')
+model_at_rnn = tf.keras.models.load_model(os.path.join(os.getcwd(), 'Spotter_recognition/saved_models/ATT_RNN.h5'))
+model_dnn = tf.keras.models.load_model(os.path.join(os.getcwd(), 'Spotter_recognition/saved_models/DNN.h5')) 
+model_cnn = tf.keras.models.load_model(os.path.join(os.getcwd(), 'Spotter_recognition/saved_models/CNN.h5')) 
+model_crnn = tf.keras.models.load_model(os.path.join(os.getcwd(), 'Spotter_recognition/saved_models/CRNN.h5')) 
+model_ds_cnn = tf.keras.models.load_model(os.path.join(os.getcwd(), 'Spotter_recognition/saved_models/DNN.h5')) 
 
 flags_emotion = {
     'model': None,
@@ -26,19 +29,23 @@ flags_emotion = {
 
 flags_spotter = {
     'model': None,
-    'mean': None,
-    'std': None,
-    'labels': 'spotter_data_service/labels',
     'path': 'temp.wav',
+    'sr': 16000,
+    'mfcc_type': 'tensorflow',
+    'frame_lenght': 6400,
+    'shift': 1600,
     'mfcc': {
-        'offset': 0,
-        'duration': 1,
-        'sample_rate': 44100,
-        'n_mfcc': 40,
-        'columns': 61
+        'window_size': 40.0,
+        'stride': 20.0,
+        'upper_frequency_limit': 7600,
+        'lower_frequency_limit': 20,
+        'sample_rate': 16000,
+        'filterbank_channel_count': 40,
+        'dct_coefficient_count': 20
     },
-    'shift': 200,
-    'frame_lenght': 400,
+    'load_data': {
+        'labels': 'spotter_data_service/labels',
+    },
 }
 
 @bot.message_handler(commands=['start'])
@@ -67,9 +74,6 @@ def callback_worker(call):
     global flags_spotter
     if call.data == "CNN":
         flags_spotter['model'] = 'CNN'
-        flags_spotter['mfcc']['n_mfcc'] = 30
-        flags_spotter['std'] = 'spotter_data_service/std_30'
-        flags_spotter['mean'] = 'spotter_data_service/mean_30'
         bot.send_message(
             call.message.chat.id, 
             'You pick a CNN model'
@@ -80,9 +84,6 @@ def callback_worker(call):
         )
     elif call.data == "CRNN":
         flags_spotter['model'] = 'CRNN'
-        flags_spotter['mfcc']['n_mfcc'] = 30
-        flags_spotter['std'] = 'spotter_data_service/std_30'
-        flags_spotter['mean'] = 'spotter_data_service/mean_30'
         bot.send_message(
             call.message.chat.id, 
             'You pick a CRNN model'
@@ -93,9 +94,6 @@ def callback_worker(call):
         )
     elif call.data == "AT_RNN":
         flags_spotter['model'] = 'AT_RNN'
-        flags_spotter['mfcc']['n_mfcc'] = 40
-        flags_spotter['std'] = 'spotter_data_service/std_40'
-        flags_spotter['mean'] = 'spotter_data_service/mean_40'
         bot.send_message(
             call.message.chat.id, 
             'You pick a ATT_RNN model'
@@ -106,9 +104,6 @@ def callback_worker(call):
         )
     elif call.data == "DNN":
         flags_spotter['model'] = 'DNN'
-        flags_spotter['mfcc']['n_mfcc'] = 40
-        flags_spotter['std'] = 'spotter_data_service/std_40'
-        flags_spotter['mean'] = 'spotter_data_service/mean_40'
         bot.send_message(
             call.message.chat.id, 
             'You pick a DNN model'
@@ -119,9 +114,6 @@ def callback_worker(call):
         )
     elif call.data == "DS_CNN":
         flags_spotter['model'] = 'DS_CNN'
-        flags_spotter['mfcc']['n_mfcc'] = 40
-        flags_spotter['std'] = 'spotter_data_service/std_40'
-        flags_spotter['mean'] = 'spotter_data_service/mean_40'
         bot.send_message(
             call.message.chat.id, 
             'You pick a DS_CNN model'
@@ -142,6 +134,7 @@ def start_message(message):
     global flags_spotter
     spotter_model = flags_spotter['model']
     bot.send_message(message.chat.id, f'Your model for spotter recognition - {spotter_model}')
+
 
 @bot.message_handler(content_types=['text'])
 def get(message):
@@ -169,6 +162,7 @@ def get_audio(audio):
     _, res = make_predict_emotion(flags_emotion)
     gender, emotion = res.split('_')
     bot.send_message(audio.chat.id, f'Your gender - {gender}, your emotion - {emotion}')
+    indicator, temp, ans = None, None, None
     if flags_spotter['model'] == 'CRNN':
         indicator, temp, ans = make_predict_spotter(model_crnn, flags_spotter, 0.95)
     elif flags_spotter['model'] == 'CNN':
