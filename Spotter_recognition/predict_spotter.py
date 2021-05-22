@@ -11,7 +11,7 @@ from Spotter_recognition.service.mfcc import get_mfcc_lb, get_mfcc_tf
 from Spotter_recognition.service.data_augmentation import normalize_data 
 
 def insert_one(indicator, index):
-    for i in range(index, min(indicator.shape[1], 851)):
+    for i in range(index, min(indicator.shape[1], index + 851)):
         indicator[0, i] = 1
     return indicator
 
@@ -21,6 +21,7 @@ def make_answer(flags, res):
     cur_end = -1
     cur_word = ''
     ans = ''
+    duration = []
     for index in range(len(res)):
         word_name, begin_frame, end_frame = res[index]
         if cur_start == -1:
@@ -33,6 +34,7 @@ def make_answer(flags, res):
             else:
                 if cur_start == cur_end:
                     ans = ans + f"You've started to say word {cur_word} at {cur_start / 16000}s.\n"
+                    duration.append((cur_word,))
                 else:
                     ans = ans + f"You've said word {cur_word} from {cur_start / 16000}s. to {cur_end / 16000}s.\n"
                 cur_start = begin_frame
@@ -70,19 +72,22 @@ def make_predict_spotter(model, flags, threshold):
     indicator = np.zeros((1, len(data)))
     print('lendata / sr and sr = ', len(data) // sr, sr)
     res = []
-    temp = []
+    predictions = []
     if len(data) <= flags['frame_lenght']:
         save_name = prepate_data(data, flags)
-        mfcc = get_mfcc(path, flags['mfcc'])
-        prediction, prediction_name = mfcc_predict(flags, mfcc)
+        if flags['mfcc_type'] == 'librosa':
+            mfcc = get_mfcc_lb(save_name, sr, flags['mfcc'])
+        elif flags['mfcc_type'] == 'tensorflow':
+            mfcc = get_mfcc_tf(save_name, sr, flags['mfcc'])
+        prediction, prediction_name = make_mfcc_prediction(model, flags, mfcc)
+        predictions.append((prediction, prediction_name, 0))
         if prediction_name != 'unknown' and prediction > threshold:
-            insert_one(indicator, index)
+            insert_one(indicator, 0)
+            res.append((prediction_name, 0, flags['frame_lenght']))
     else:
         begin = 0
         shift = flags['shift']
-        cnt = 0
         while (begin + flags['frame_lenght'] < len(data)):
-            cnt += 1
             save_name = prepare_data(data[begin: begin + flags['frame_lenght']], sr)
             if flags['mfcc_type'] == 'librosa':
                 mfcc = get_mfcc_lb(save_name, sr, flags['mfcc'])
@@ -90,10 +95,10 @@ def make_predict_spotter(model, flags, threshold):
                 mfcc = get_mfcc_tf(save_name, sr, flags['mfcc'])
             prediction, prediction_name = make_mfcc_prediction(model, flags, mfcc)
             print(prediction, prediction_name)
-            temp.append(prediction)
+            predictions.append((prediction, prediction_name, begin))
             if prediction_name != 'unknown' and prediction > threshold:
                 indicator = insert_one(indicator, begin)
                 res.append((prediction_name, begin, begin + flags['frame_lenght']))
             begin += flags['shift']
-    answer = make_answer(flags, res)
-    return indicator, temp, answer
+    res = make_answer(flags, res)
+    return indicator, predictions, res
