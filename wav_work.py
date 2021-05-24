@@ -51,10 +51,6 @@ def solve():
     samplerate, data = read()
     length = get_lentgh(samplerate, data)
     average_amplitude = get_average_amplitude(data)
-    #plot_1(samplerate, data, length)
-    #plot_2(samplerate, data)
+    plot_1(samplerate, data, length)
+    plot_2(samplerate, data)
     return average_amplitude
-
-
-if __name__ == '__main__':
-    main()

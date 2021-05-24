@@ -3,6 +3,7 @@ import telebot
 import requests
 import urllib
 import subprocess
+import multiprocessing
 from wav_work import solve, delete
 from predict_emotion import make_predict_emotion
 from telebot import types
@@ -10,16 +11,20 @@ from Spotter_recognition.predict_spotter import make_predict_spotter
 from Spotter_recognition.service.plot_making import make_plot
 import tensorflow as tf
 import os
+import sys
+import time
+from rq import Queue
+from redis import Redis
 
 
-token = "1614991779:AAHzVpGl1ng7HmNHm95WymAUq8AAEkO-xaE" 
+token = # your token 
 
 bot = telebot.TeleBot(token)
 model_at_rnn = tf.keras.models.load_model(os.path.join(os.getcwd(), 'Spotter_recognition/saved_models/ATT_RNN.h5'))
 model_dnn = tf.keras.models.load_model(os.path.join(os.getcwd(), 'Spotter_recognition/saved_models/DNN.h5')) 
 model_cnn = tf.keras.models.load_model(os.path.join(os.getcwd(), 'Spotter_recognition/saved_models/CNN.h5')) 
 model_crnn = tf.keras.models.load_model(os.path.join(os.getcwd(), 'Spotter_recognition/saved_models/CRNN.h5')) 
-model_ds_cnn = tf.keras.models.load_model(os.path.join(os.getcwd(), 'Spotter_recognition/saved_models/DNN.h5')) 
+model_ds_cnn = tf.keras.models.load_model(os.path.join(os.getcwd(), 'Spotter_recognition/saved_models/DS_NN.h5')) 
 
 flags_emotion = {
     'model': None,
@@ -49,6 +54,10 @@ flags_spotter = {
         'labels': 'spotter_data_service/labels',
     },
 }
+
+redis_conn = Redis()
+queue = Queue(connection=redis_conn)
+
 
 @bot.message_handler(commands=['start'])
 def start_message(message):
@@ -182,14 +191,18 @@ def get_audio(audio):
     file_path = temp.file_path
     urll = f'https://api.telegram.org/file/bot{token}/{file_path}'
     urllib.request.urlretrieve(urll, filename='1.oga', reporthook=None, data=None)
-    average_amplitude = solve()
+    
+    job = queue.enqueue(solve)
+    time.sleep(3)
+    average_amplitude = job.result
     bot.send_message(audio.chat.id, f'average_amplitude={average_amplitude}')
-    #bot.send_photo(audio.chat.id, photo=open('plot1.png', 'rb'))
-    #bot.send_photo(audio.chat.id, photo=open('plot2.png', 'rb'))
-    #src_filename = 'plot1.png'
-    #process = subprocess.call(['del', src_filename], shell=True)
-    #src_filename = 'plot2.png'
-    #process = subprocess.call(['del', src_filename], shell=True)
+    bot.send_photo(audio.chat.id, photo=open('plot1.png', 'rb'))
+    bot.send_photo(audio.chat.id, photo=open('plot2.png', 'rb'))
+    src_filename = 'plot1.png'
+    process = subprocess.call(['del', src_filename], shell=True)
+    src_filename = 'plot2.png'
+    process = subprocess.call(['del', src_filename], shell=True)
+    
     _, res = make_predict_emotion(flags_emotion)
     gender, emotion = res.split('_')
     bot.send_message(audio.chat.id, f'Your gender - {gender}, your emotion - {emotion}')
@@ -211,7 +224,8 @@ def get_audio(audio):
             bot.send_message(audio.chat.id, "Unfortunatelly model did'n recognize any spotter words")
         else:
             bot.send_message(audio.chat.id, ans)
-            make_plot(prediction_data, 0.95)
+            job = queue.enqueue(make_plot, prediction_data, 0.95)
+            time.sleep(4)
             bot.send_photo(audio.chat.id, photo=open('model_prediction.jpg', 'rb'));
     delete()
 

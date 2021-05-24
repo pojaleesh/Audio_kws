@@ -1,4 +1,5 @@
 import matplotlib.pyplot as plt
+import numpy as np
 
 
 def make_plot(prediction_data, thershold):
@@ -12,7 +13,6 @@ def make_plot(prediction_data, thershold):
     prev_label = ""
     max_p = 0
     max_index = 0
-
     for index, x in enumerate(prediction_data):
         if x[0] > thershold:
             label = x[1]
@@ -20,14 +20,14 @@ def make_plot(prediction_data, thershold):
                 if x[0] > max_p:
                     max_p, max_index = x[0], index 
                 continue
-            elif prev_label != "":
+            elif prev_label != "" and prev_label != "unknown":
                 plt.plot(max_index, max_p, 'ro', markersize=10, markerfacecolor='blue')
                 plt.text(max_index, max_p, prev_label, fontsize=15)
             prev_label = label
             max_p = x[0]
             max_index = index
         else:
-            if prev_label != "":
+            if prev_label != "" and prev_label != 'unknown':
                 plt.plot(max_index, max_p, 'ro', markersize=10, markerfacecolor='blue')
                 plt.text(max_index, max_p, prev_label, fontsize=15)
             prev_label = ""
