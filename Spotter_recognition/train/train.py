@@ -38,7 +38,7 @@ def prepare_data(flags):
 
 
 def train_model(flags):
-    df = pd.read_csv(os.path.abspath('../full_df'))
+    df = pd.read_csv(os.path.abspath(flags['df_path']))
     df_train, df_test = train_test_split(
         df, shuffle=True, test_size=flags['test_size'], 
         train_size = flags['train_size'], random_state=42
@@ -63,7 +63,7 @@ def train_model(flags):
     
     if flags['optimizer'] == 'Adam':
         opt = optimizers.Adam(0.001)
-    elif flags['optimizer'] == 'momentum':
+    elif flags['optimizer'] == 'Momentum':
         opt = optimizers.SGD(momentum=0.99)
     else:
         raise ValueError('Unknown optimizer for training')
@@ -103,8 +103,7 @@ def train_model(flags):
     train_metrics = []
     test_metrics = []
     
-    for step in range(start_step, 100 + 1):
-        print(step)
+    for step in range(start_step, training_steps_max + 1):
         X, Y = make_batch(df_train, lb, background_folder, noise_to_data, batch_size, sr, p_aug, "tensorflow")
         if Y.shape != (batch_size, label_count):
             raise ValueError('Invalid train batch shape')
