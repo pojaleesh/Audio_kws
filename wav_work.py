@@ -4,6 +4,8 @@ from scipy.io import wavfile
 import soundfile as sf
 import subprocess
 import numpy as np
+import os
+
 
 def build():
     src_filename = '1.oga'
@@ -12,8 +14,11 @@ def build():
     
 
 def delete():
-    src_filename = 'temp.wav'
-    process = subprocess.run(['rm', src_filename])
+    delete_formats = {'oga', 'wav', 'jpg', 'png', 'ova'}
+    for src_filename in os.listdir():
+        name = src_filename.split('.')
+        if len(name) == 2 and (name[1] in delete_formats):
+            process = subprocess.run(['rm', src_filename])
  
     
 def read():
@@ -54,3 +59,5 @@ def solve():
     plot_1(samplerate, data, length)
     plot_2(samplerate, data)
     return average_amplitude
+
+delete()
