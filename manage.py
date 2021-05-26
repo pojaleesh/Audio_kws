@@ -5,7 +5,7 @@ import urllib
 import subprocess
 import multiprocessing
 from wav_work import solve, delete
-from predict_emotion import make_predict_emotion
+from Emotion_biometric_recognition.predict_emotion import make_predict_emotion
 from telebot import types
 from Spotter_recognition.predict_spotter import make_predict_spotter
 from Spotter_recognition.service.plot_making import make_plot
