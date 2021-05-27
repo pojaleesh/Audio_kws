@@ -17,21 +17,45 @@ from rq import Queue
 from redis import Redis
 
 
-token = # your token 
+token = "1722862525:AAGCMTbuLZ6onceR1ImpylMXgEhbrj6CxPg" 
 
 bot = telebot.TeleBot(token)
 model_at_rnn = tf.keras.models.load_model(os.path.join(os.getcwd(), 'Spotter_recognition/saved_models/ATT_RNN.h5'))
 model_dnn = tf.keras.models.load_model(os.path.join(os.getcwd(), 'Spotter_recognition/saved_models/DNN.h5')) 
 model_cnn = tf.keras.models.load_model(os.path.join(os.getcwd(), 'Spotter_recognition/saved_models/CNN.h5')) 
 model_crnn = tf.keras.models.load_model(os.path.join(os.getcwd(), 'Spotter_recognition/saved_models/CRNN.h5')) 
-model_ds_cnn = tf.keras.models.load_model(os.path.join(os.getcwd(), 'Spotter_recognition/saved_models/DS_NN.h5')) 
+model_ds_cnn = tf.keras.models.load_model(os.path.join(os.getcwd(), 'Spotter_recognition/saved_models/DS_CNN.h5')) 
+
+emotion_cnn_1 = tf.keras.models.load_model(
+    os.path.join(os.getcwd(), 'Emotion_biometric_recognition/saved_models/CNN1_emotion.h5')
+)
+
+emotion_cnn_2 = tf.keras.models.load_model(
+    os.path.join(os.getcwd(), 'Emotion_biometric_recognition/saved_models/CNN2_emotion.h5')
+)
 
 flags_emotion = {
     'model': None,
     'path': 'temp.wav',
-    'mean': 'emotion_data_service/mean',
-    'std': 'emotion_data_service/std',
-    'labels': 'emotion_data_service/labels',
+    'sr': 44100,
+    'mfcc': {
+        'window_size': 40.0,
+        'stride': 20.0,
+        'upper_frequency_limit': 7600,
+        'lower_frequency_limit': 20,
+        'sample_rate': 44100,
+        'filterbank_channel_count': 40,
+        'dct_coefficient_count': 20,
+        'audio_len': 314818
+    },
+    'load_data': {
+        'labels': 'emotion_data_service/labels',
+        'mean': 'emotion_data_service/mean',
+        'std': 'emotion_data_service/std'
+    },
+    'shift': 22050,
+    'frame_lenght': 314818,
+    'path': 'temp.wav',
 }
 
 flags_spotter = {
@@ -184,6 +208,7 @@ def get(message):
 
 @bot.message_handler(content_types=['voice'])
 def get_audio(audio):
+    delete()
     file_id = audio.voice.file_id
     url = f'https://api.telegram.org/bot{token}/getFile?file_id={file_id}'
     res = requests.get(url).json()
@@ -191,7 +216,6 @@ def get_audio(audio):
     file_path = temp.file_path
     urll = f'https://api.telegram.org/file/bot{token}/{file_path}'
     urllib.request.urlretrieve(urll, filename='1.oga', reporthook=None, data=None)
-    
     job = queue.enqueue(solve)
     time.sleep(3)
     average_amplitude = job.result
@@ -203,8 +227,8 @@ def get_audio(audio):
     src_filename = 'plot2.png'
     process = subprocess.call(['del', src_filename], shell=True)
     
-    _, res = make_predict_emotion(flags_emotion)
-    gender, emotion = res.split('_')
+    prediction_emotion = make_predict_emotion(emotion_cnn_1, flags_emotion)
+    gender, emotion = prediction_emotion.split('_')
     bot.send_message(audio.chat.id, f'Your gender - {gender}, your emotion - {emotion}')
     indicator, temp, ans = None, None, None
     if flags_spotter['model'] == 'CRNN':

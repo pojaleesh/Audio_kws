@@ -59,5 +59,3 @@ def solve():
     plot_1(samplerate, data, length)
     plot_2(samplerate, data)
     return average_amplitude
-
-delete()

@@ -24,13 +24,9 @@ def load_data(flags):
 
 def make_mfcc_prediction(model, flags, mfcc):
     lb, mean, std = load_data(flags['load_data'])
-    if flags['mfcc_type'] == 'librosa':
-        mfcc = (mfcc - mean) / std
-        mfcc = np.array(mfcc)
-    prediction = model.predict(mfcc, verbose=1)
-    prediction = prediction[0]
-    index_1, index_2 = prediction.argsort(axis=0)[-2:]
-    prediction.sort(axis=0)
-    prediction_1, prediction_2 = prediction[-2:]
-    return prediction_2, lb[index_2], prediction_1, lb[index_1]
-
+    mfcc = (mfcc - mean) / std
+    mfcc = np.array(mfcc)
+    prediction = model.predict(mfcc, batch_size=16, verbose=1)
+    p = prediction.max(axis=1)
+    index = prediction.argmax(axis=1)[0]
+    return p, lb[index]

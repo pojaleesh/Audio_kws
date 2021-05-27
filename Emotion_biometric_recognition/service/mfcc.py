@@ -4,6 +4,7 @@ from tensorflow.python.ops import gen_audio_ops as audio_ops
 from matplotlib.pyplot import specgram
 from tensorflow.python.ops import io_ops
 import tensorflow as tf
+import soundfile as sf
 
 
 def cut_data(data, length):
@@ -17,7 +18,7 @@ def cut_data(data, length):
 
 
 def get_mfcc(path, flags):
-    data, sr = librosa.load(path, flags['sr'])
+    data, sr = librosa.load(path, flags['sample_rate'])
     data = cut_data(data, flags['audio_len'])
     wav_path_for_convert = 'temp_for_convert.wav'
     sf.write(wav_path_for_convert, data, sr)

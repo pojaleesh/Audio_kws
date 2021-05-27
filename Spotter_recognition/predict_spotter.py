@@ -70,7 +70,6 @@ def make_predict_spotter(model, flags, threshold):
     path = flags['path']
     data, sr = librosa.load(path, sr=flags['sr'])
     indicator = np.zeros((1, len(data)))
-    print('lendata / sr and sr = ', len(data) // sr, sr)
     res = []
     predictions = []
     if len(data) <= flags['frame_lenght']:
@@ -79,11 +78,14 @@ def make_predict_spotter(model, flags, threshold):
             mfcc = get_mfcc_lb(save_name, sr, flags['mfcc'])
         elif flags['mfcc_type'] == 'tensorflow':
             mfcc = get_mfcc_tf(save_name, sr, flags['mfcc'])
-        prediction, prediction_name = make_mfcc_prediction(model, flags, mfcc)
-        predictions.append((prediction, prediction_name, 0))
-        if prediction_name != 'unknown' and prediction > threshold:
+        prediction_1, name_1, prediction_2, name_2 = make_mfcc_prediction(model, flags, mfcc)
+        if name_1 == 'unknown':
+            predictions.append((prediction_2, name_2, 0))
+        else:
+            predictions.append((prediction_1, name_1, 0))
+        if name_1 != 'unknown' and prediction_1 > threshold:
             insert_one(indicator, 0)
-            res.append((prediction_name, 0, flags['frame_lenght']))
+            res.append((name_1, 0, flags['frame_lenght']))
     else:
         begin = 0
         shift = flags['shift']
@@ -93,12 +95,14 @@ def make_predict_spotter(model, flags, threshold):
                 mfcc = get_mfcc_lb(save_name, sr, flags['mfcc'])
             elif flags['mfcc_type'] == 'tensorflow':
                 mfcc = get_mfcc_tf(save_name, sr, flags['mfcc'])
-            prediction, prediction_name = make_mfcc_prediction(model, flags, mfcc)
-            print(prediction, prediction_name)
-            predictions.append((prediction, prediction_name, begin))
-            if prediction_name != 'unknown' and prediction > threshold:
+            prediction_1, name_1, prediction_2, name_2 = make_mfcc_prediction(model, flags, mfcc)
+            if name_1 == 'unknown':
+                predictions.append((prediction_2, name_2, begin))
+            else:
+                predictions.append((prediction_1, name_1, begin))
+            if name_1 != 'unknown' and prediction_1 > threshold:
                 indicator = insert_one(indicator, begin)
-                res.append((prediction_name, begin, begin + flags['frame_lenght']))
+                res.append((name_1, begin, begin + flags['frame_lenght']))
             begin += flags['shift']
     res = make_answer(flags, res)
     return indicator, predictions, res

@@ -20,19 +20,22 @@ def make_plot(prediction_data, thershold):
                 if x[0] > max_p:
                     max_p, max_index = x[0], index 
                 continue
-            elif prev_label != "" and prev_label != "unknown":
+            elif prev_label != '' and prev_label != 'unknown':
                 plt.plot(max_index, max_p, 'ro', markersize=10, markerfacecolor='blue')
                 plt.text(max_index, max_p, prev_label, fontsize=15)
             prev_label = label
             max_p = x[0]
             max_index = index
         else:
-            if prev_label != "" and prev_label != 'unknown':
+            if prev_label != '' and prev_label != 'unknown':
                 plt.plot(max_index, max_p, 'ro', markersize=10, markerfacecolor='blue')
                 plt.text(max_index, max_p, prev_label, fontsize=15)
             prev_label = ""
             max_p = 0
             max_index = 0
+    if prev_label != '' and prev_label != 'unknown':
+        plt.plot(max_index, max_p, 'ro', markersize=10, markerfacecolor='blue')
+        plt.text(max_index, max_p, prev_label, fontsize=15)
 
     plt.title('Model prediction')
     plt.ylabel('Softmax prediction value')
