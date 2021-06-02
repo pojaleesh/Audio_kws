@@ -27,7 +27,7 @@ def make_mfcc_prediction(model, flags, mfcc):
     if flags['mfcc_type'] == 'librosa':
         mfcc = (mfcc - mean) / std
         mfcc = np.array(mfcc)
-    prediction = model.predict(mfcc, verbose=1)
+    prediction = model.predict(mfcc, batch_size=64, verbose=1)
     prediction = prediction[0]
     index_1, index_2 = prediction.argsort(axis=0)[-2:]
     prediction.sort(axis=0)

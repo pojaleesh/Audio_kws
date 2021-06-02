@@ -14,7 +14,7 @@ from keras.callbacks import ModelCheckpoint
 
 def CRNN_model(input_shape, nclass):
     
-    input_ = Input(input_shape, batch_size=64)
+    input_ = Input(input_shape)
     
     X = Conv2D(16, kernel_size=(3, 3), activation="relu", dilation_rate=(1, 1), strides=(1, 1))(input_)
     X = Conv2D(16, kernel_size=(5, 3), activation="relu", dilation_rate=(1, 1), strides=(1, 1))(X)
@@ -22,7 +22,7 @@ def CRNN_model(input_shape, nclass):
     shape = X.shape
     X = tf.keras.layers.Reshape((-1, shape[2] * shape[3]))(X)
     
-    X = GRU(units = 256, return_sequences=0, stateful=1)(X)
+    X = GRU(units = 256, return_sequences=0)(X)
     
     X = Flatten()(X)
     X = Dropout(rate=0.1)(X)

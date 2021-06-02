@@ -16,11 +16,14 @@ import time
 from rq import Queue
 from redis import Redis
 from reply_keyboard import Keyboard
+from user2model import User2Model
+
 
 token = "1825121446:AAGxTdrkzyvhOisEXDH2p2nmVkVe9STVtyE" 
 
 bot = telebot.TeleBot(token)
 keyboard = Keyboard(bot)
+users_model_interface = User2Model(bot)
 
 model_at_rnn = tf.keras.models.load_model(os.path.join(os.getcwd(), 'Spotter_recognition/saved_models/ATT_RNN.h5'))
 model_dnn = tf.keras.models.load_model(os.path.join(os.getcwd(), 'Spotter_recognition/saved_models/DNN.h5')) 
@@ -37,7 +40,6 @@ emotion_cnn_2 = tf.keras.models.load_model(
 )
 
 flags_emotion = {
-    'model': None,
     'path': 'temp.wav',
     'sr': 44100,
     'mfcc': {
@@ -61,7 +63,6 @@ flags_emotion = {
 }
 
 flags_spotter = {
-    'model': None,
     'path': 'temp.wav',
     'sr': 16000,
     'mfcc_type': 'tensorflow',
@@ -116,8 +117,7 @@ def get_message(message):
 
 @bot.message_handler(func=lambda mess: 'CNN' == mess.text, content_types=['text'])
 def get_message(message):
-    global flags_spotterdd
-    flags_spotter['model'] = 'CNN'
+    users_model_interface.set_spotter_model(message.from_user.id, 'CNN')
     bot.send_message(
         message.chat.id,
         'You pick a CNN model'
@@ -131,8 +131,7 @@ def get_message(message):
 
 @bot.message_handler(func=lambda mess: 'CRNN' == mess.text, content_types=['text'])
 def get_message(message):
-    global flags_spotter
-    flags_spotter['model'] = 'CRNN'
+    users_model_interface.set_spotter_model(message.from_user.id, 'CRNN')
     bot.send_message(
         message.chat.id,
         'You pick a CRNN model'
@@ -146,8 +145,7 @@ def get_message(message):
 
 @bot.message_handler(func=lambda mess: 'ATT_RNN' == mess.text, content_types=['text'])
 def get_message(message):
-    global flags_spotter
-    flags_spotter['model'] = 'ATT_RNN'
+    users_model_interface.set_spotter_model(message.from_user.id, 'ATT_RNN')
     bot.send_message(
         message.chat.id,
         'You pick a ATT_RNN model'
@@ -161,8 +159,7 @@ def get_message(message):
 
 @bot.message_handler(func=lambda mess: 'DNN' == mess.text, content_types=['text'])
 def get_message(message):
-    global flags_spotter
-    flags_spotter['model'] = 'DNN'
+    users_model_interface.set_spotter_model(message.from_user.id, 'DNN')
     bot.send_message(
         message.chat.id,
         'You pick a DNN model'
@@ -176,8 +173,7 @@ def get_message(message):
 
 @bot.message_handler(func=lambda mess: 'DS_CNN' == mess.text, content_types=['text'])
 def get_message(message):
-    global flags_spotter
-    flags_spotter['model'] = 'DS_CNN'
+    users_model_interface.set_spotter_model(message.from_user.id, 'DS_CNN')
     bot.send_message(
         message.chat.id,
         'You pick a DS_CNN model'
@@ -191,8 +187,7 @@ def get_message(message):
 
 @bot.message_handler(func=lambda mess: 'CNN_1' == mess.text, content_types=['text'])
 def get_message(message):
-    global flags_spotter
-    flags_emotion['model'] = 'CNN_1'
+    users_model_interface.set_emotion_model(message.from_user.id, 'CNN_1')
     bot.send_message(
         message.chat.id,
         'You pick a CNN_1 model'
@@ -206,8 +201,7 @@ def get_message(message):
 
 @bot.message_handler(func=lambda mess: 'CNN_2' == mess.text, content_types=['text'])
 def get_message(message):
-    global flags_spotter
-    flags_emotion['model'] = 'CNN_2'
+    users_model_interface.set_emotion_model(message.from_user.id, 'CNN_2')
     bot.send_message(
         message.chat.id,
         'You pick a CNN_2 model'
@@ -221,19 +215,16 @@ def get_message(message):
 
 @bot.message_handler(func=lambda mess: 'Get current models' == mess.text, content_types=['text'])
 def get_message(message):
-    global flags_spotter
-    spotter_model = flags_spotter['model']
-    emotion_model = flags_emotion['model']
+    spotter_model = users_model_interface.get_spotter_model(message.from_user.id)
+    emotion_model = users_model_interface.get_emotion_model(message.from_user.id)
     if spotter_model:
         bot.send_message(message.chat.id, f'Your model for spotter recognition - {spotter_model}')
     else:
         bot.send_message(message.chat.id, f'You did not pick a model for spotter recognition.')
-        #bot.send_message(message.chat.id, message.from_user.id)
     if emotion_model:
         bot.send_message(message.chat.id, f'Your model for emotion and gender recognition - {emotion_model}')
     else:
         bot.send_message(message.chat.id, f'You did not pick a model for emotion recognition.')
-        #bot.send_message(message.chat.id, message.from_user.id)
 
 
 @bot.message_handler(content_types=['voice'])
@@ -249,7 +240,7 @@ def get_audio(audio):
     job = queue.enqueue(solve)
     time.sleep(3)
     average_amplitude = job.result
-    bot.send_message(audio.chat.id, f'average_amplitude={average_amplitude}')
+    bot.send_message(audio.chat.id, f'Average amplitude of your audio ={average_amplitude}')
     bot.send_photo(audio.chat.id, photo=open('plot1.png', 'rb'))
     bot.send_photo(audio.chat.id, photo=open('plot2.png', 'rb'))
     src_filename = 'plot1.png'
@@ -257,9 +248,11 @@ def get_audio(audio):
     src_filename = 'plot2.png'
     process = subprocess.call(['del', src_filename], shell=True)
     prediction_emotion = None
-    if flags_emotion['model'] == 'CNN_1':
+    spotter_model = users_model_interface.get_spotter_model(audio.from_user.id)
+    emotion_model = users_model_interface.get_emotion_model(audio.from_user.id)
+    if emotion_model == 'CNN_1':
         prediction_emotion = make_predict_emotion(emotion_cnn_1, flags_emotion)
-    elif flags_emotion['model'] == 'CNN_2':
+    elif emotion_model == 'CNN_2':
         prediction_emotion = make_predict_emotion(emotion_cnn_2, flags_emotion)
     else:
         bot.send_message(audio.chat.id, 'You did not pick a model for emotion and gender recognition :(')
@@ -267,15 +260,15 @@ def get_audio(audio):
         gender, emotion = prediction_emotion.split('_')
         bot.send_message(audio.chat.id, f'Your gender - {gender}, your emotion - {emotion}')
     indicator, temp, ans = None, None, None
-    if flags_spotter['model'] == 'CRNN':
+    if spotter_model == 'CRNN':
         indicator, prediction_data, ans = make_predict_spotter(model_crnn, flags_spotter, 0.95)
-    elif flags_spotter['model'] == 'CNN':
+    elif spotter_model == 'CNN':
         indicator, prediction_data, ans = make_predict_spotter(model_cnn, flags_spotter, 0.95)
-    elif flags_spotter['model'] == 'ATT_RNN':
+    elif spotter_model == 'ATT_RNN':
         indicator, prediction_data, ans = make_predict_spotter(model_at_rnn, flags_spotter, 0.95)
-    elif flags_spotter['model'] == 'DNN':
+    elif spotter_model == 'DNN':
         indicator, prediction_data, ans = make_predict_spotter(model_dnn, flags_spotter, 0.95)
-    elif flags_spotter['model'] == 'DS_CNN':
+    elif spotter_model == 'DS_CNN':
          indicator, prediction_data, ans = make_predict_spotter(model_ds_cnn, flags_spotter, 0.95)
     else:
         bot.send_message(audio.chat.id, 'You did not pick a model for spotter recognition :(')
