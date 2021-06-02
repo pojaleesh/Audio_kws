@@ -15,11 +15,13 @@ import sys
 import time
 from rq import Queue
 from redis import Redis
+from reply_keyboard import Keyboard
 
-
-token = "1722862525:AAGCMTbuLZ6onceR1ImpylMXgEhbrj6CxPg" 
+token = "1825121446:AAGxTdrkzyvhOisEXDH2p2nmVkVe9STVtyE" 
 
 bot = telebot.TeleBot(token)
+keyboard = Keyboard(bot)
+
 model_at_rnn = tf.keras.models.load_model(os.path.join(os.getcwd(), 'Spotter_recognition/saved_models/ATT_RNN.h5'))
 model_dnn = tf.keras.models.load_model(os.path.join(os.getcwd(), 'Spotter_recognition/saved_models/DNN.h5')) 
 model_cnn = tf.keras.models.load_model(os.path.join(os.getcwd(), 'Spotter_recognition/saved_models/CNN.h5')) 
@@ -84,126 +86,154 @@ queue = Queue(connection=redis_conn)
 
 
 @bot.message_handler(commands=['start'])
-def start_message(message):
-    bot.send_message(message.chat.id, "Okey, let's start")
-    keyboard = types.InlineKeyboardMarkup();
-    key_CNN = types.InlineKeyboardButton(text='CNN', callback_data='CNN');
-    key_CRNN = types.InlineKeyboardButton(text='CRNN', callback_data='CRNN');
-    key_ATT_RNN = types.InlineKeyboardButton(text='ATT_RNN', callback_data='ATT_RNN');
-    key_DNN = types.InlineKeyboardButton(text='DNN', callback_data='DNN');
-    key_DS_CNN = types.InlineKeyboardButton(text='DS_CNN', callback_data='DS_CNN');
-    keyboard.add(key_CNN)
-    keyboard.add(key_CRNN)
-    keyboard.add(key_ATT_RNN)
-    keyboard.add(key_DNN)
-    keyboard.add(key_DS_CNN)
+def get_message(message):
+    main_markup = telebot.types.ReplyKeyboardMarkup(True, False)
+    main_markup.row("Choose a spotter model")
+    main_markup.row("Choose a emotion and gender model")
+    main_markup.row("Get current models")
+    bot.send_message(message.from_user.id, 'Pick models:', reply_markup=main_markup)
+
+
+@bot.message_handler(func=lambda mess: "Menu" == mess.text, content_types=['text'])
+def handle_text(message):
+    keyboard.main_menu(message)
+
+
+@bot.message_handler(func=lambda mess: 'Choose a spotter model' == mess.text, content_types=['text'])
+def get_message(message):
+    keyboard.choose_spotter_model(message)
+
+
+@bot.message_handler(func=lambda mess: 'Choose a emotion and gender model' == mess.text, content_types=['text'])
+def get_message(message):
+    keyboard.choose_emotion_model(message)
+
+
+@bot.message_handler(func=lambda mess: 'Back' == mess.text, content_types=['text'])
+def get_message(message):
+    keyboard.main_menu(message)
+
+
+@bot.message_handler(func=lambda mess: 'CNN' == mess.text, content_types=['text'])
+def get_message(message):
+    global flags_spotterdd
+    flags_spotter['model'] = 'CNN'
     bot.send_message(
-        message.from_user.id, 
-        text="Pick a model for spotter recognition", 
-        reply_markup=keyboard
-    )
-
-
-@bot.message_handler(commands=['spotter_model'])
-def start_message(message):
-    keyboard = types.InlineKeyboardMarkup();
-    key_CNN = types.InlineKeyboardButton(text='CNN', callback_data='CNN');
-    key_CRNN = types.InlineKeyboardButton(text='CRNN', callback_data='CRNN');
-    key_ATT_RNN = types.InlineKeyboardButton(text='ATT_RNN', callback_data='ATT_RNN');
-    key_DNN = types.InlineKeyboardButton(text='DNN', callback_data='DNN');
-    key_DS_CNN = types.InlineKeyboardButton(text='DS_CNN', callback_data='DS_CNN');
-    keyboard.add(key_CNN)
-    keyboard.add(key_CRNN)
-    keyboard.add(key_ATT_RNN)
-    keyboard.add(key_DNN)
-    keyboard.add(key_DS_CNN)
+        message.chat.id,
+        'You pick a CNN model'
+    );
     bot.send_message(
-        message.from_user.id,
-        text="Pick a model for spotter recognition",
-        reply_markup=keyboard
+        message.chat.id,
+        'Here you can read a decription : https://arxiv.org/pdf/1711.07128.pdf'
     )
+    bot.send_photo(message.chat.id, photo=open('figures/CNN_acc_with_aug.jpg', 'rb'))
 
-    
-@bot.callback_query_handler(func=lambda call: True)
-def callback_worker(call):
+
+@bot.message_handler(func=lambda mess: 'CRNN' == mess.text, content_types=['text'])
+def get_message(message):
     global flags_spotter
-    if call.data == "CNN":
-        flags_spotter['model'] = 'CNN'
-        bot.send_message(
-            call.message.chat.id, 
-            'You pick a CNN model'
-        );
-        bot.send_message(
-            call.message.chat.id, 
-            'Here you can read a decription : https://arxiv.org/pdf/1711.07128.pdf'
-        )
-        bot.send_photo(call.message.chat.id, photo=open('figures/CNN_acc_with_aug.jpg', 'rb'))
-    elif call.data == "CRNN":
-        flags_spotter['model'] = 'CRNN'
-        bot.send_message(
-            call.message.chat.id, 
-            'You pick a CRNN model'
-        );
-        bot.send_message(
-            call.message.chat.id, 
-            'Here you can read a decription : https://arxiv.org/pdf/1711.07128.pdf'
-        )
-        bot.send_photo(call.message.chat.id, photo=open('figures/CRNN_acc_with_aug.jpg', 'rb'))
-    elif call.data == "ATT_RNN":
-        flags_spotter['model'] = 'ATT_RNN'
-        bot.send_message(
-            call.message.chat.id, 
-            'You pick a ATT_RNN model'
-        );
-        bot.send_message(
-            call.message.chat.id, 
-            'Here you can read a decription : https://arxiv.org/pdf/1808.08929.pdf'
-        )
-        bot.send_photo(call.message.chat.id, photo=open('figures/ATT_RNN_acc_with_aug.jpg', 'rb'))
-    elif call.data == "DNN":
-        flags_spotter['model'] = 'DNN'
-        bot.send_message(
-            call.message.chat.id, 
-            'You pick a DNN model'
-        );
-        bot.send_message(
-            call.message.chat.id, 
-            'Here you can read a decription : https://arxiv.org/pdf/1711.07128.pdf'
-        )
-        bot.send_photo(call.message.chat.id, photo=open('figures/DNN_acc_with_aug.jpg', 'rb'))
-    elif call.data == "DS_CNN":
-        flags_spotter['model'] = 'DS_CNN'
-        bot.send_message(
-            call.message.chat.id, 
-            'You pick a DS_CNN model'
-        );
-        bot.send_message(
-            call.message.chat.id, 
-            'Here you can read a decription : https://arxiv.org/pdf/1711.07128.pdf'
-        )
-        bot.send_photo(call.message.chat.id, photo=open('figures/DS_CNN_acc_with_aug.jpg', 'rb'))
+    flags_spotter['model'] = 'CRNN'
+    bot.send_message(
+        message.chat.id,
+        'You pick a CRNN model'
+    );
+    bot.send_message(
+        message.chat.id,
+        'Here you can read a decription : https://arxiv.org/pdf/1711.07128.pdf'
+    )
+    bot.send_photo(message.chat.id, photo=open('figures/CRNN_acc_with_aug.jpg', 'rb'))
 
 
-@bot.message_handler(commands=['end'])
-def start_message(message):
-    bot.send_message(message.chat.id, 'end')
+@bot.message_handler(func=lambda mess: 'ATT_RNN' == mess.text, content_types=['text'])
+def get_message(message):
+    global flags_spotter
+    flags_spotter['model'] = 'ATT_RNN'
+    bot.send_message(
+        message.chat.id,
+        'You pick a ATT_RNN model'
+    );
+    bot.send_message(
+        message.chat.id,
+        'Here you can read a decription : https://arxiv.org/pdf/1808.08929.pdf'
+    )
+    bot.send_photo(message.chat.id, photo=open('figures/ATT_RNN_acc_with_aug.jpg', 'rb'))
 
 
-@bot.message_handler(commands=['model'])
-def start_message(message):
+@bot.message_handler(func=lambda mess: 'DNN' == mess.text, content_types=['text'])
+def get_message(message):
+    global flags_spotter
+    flags_spotter['model'] = 'DNN'
+    bot.send_message(
+        message.chat.id,
+        'You pick a DNN model'
+    );
+    bot.send_message(
+        message.chat.id,
+        'Here you can read a decription : https://arxiv.org/pdf/1711.07128.pdf'
+    )
+    bot.send_photo(message.chat.id, photo=open('figures/DNN_acc_with_aug.jpg', 'rb'))
+
+
+@bot.message_handler(func=lambda mess: 'DS_CNN' == mess.text, content_types=['text'])
+def get_message(message):
+    global flags_spotter
+    flags_spotter['model'] = 'DS_CNN'
+    bot.send_message(
+        message.chat.id,
+        'You pick a DS_CNN model'
+    );
+    bot.send_message(
+        message.chat.id,
+        'Here you can read a decription : https://arxiv.org/pdf/1711.07128.pdf'
+    )
+    bot.send_photo(message.chat.id, photo=open('figures/DS_CNN_acc_with_aug.jpg', 'rb'))
+
+
+@bot.message_handler(func=lambda mess: 'CNN_1' == mess.text, content_types=['text'])
+def get_message(message):
+    global flags_spotter
+    flags_emotion['model'] = 'CNN_1'
+    bot.send_message(
+        message.chat.id,
+        'You pick a CNN_1 model'
+    );
+    bot.send_message(
+        message.chat.id,
+        'Here you can read a decription : https://arxiv.org/pdf/1803.03759.pdf'
+    )
+    bot.send_photo(message.chat.id, photo=open('figures/CNN1_emotion_accuracy.jpg', 'rb'))
+
+
+@bot.message_handler(func=lambda mess: 'CNN_2' == mess.text, content_types=['text'])
+def get_message(message):
+    global flags_spotter
+    flags_emotion['model'] = 'CNN_2'
+    bot.send_message(
+        message.chat.id,
+        'You pick a CNN_2 model'
+    );
+    bot.send_message(
+        message.chat.id,
+        'Here you can read a decription : https://arxiv.org/pdf/1803.03759.pdf'
+    )
+    bot.send_photo(message.chat.id, photo=open('figures/CNN2_emotion_accuracy.jpg', 'rb'))
+
+
+@bot.message_handler(func=lambda mess: 'Get current models' == mess.text, content_types=['text'])
+def get_message(message):
     global flags_spotter
     spotter_model = flags_spotter['model']
+    emotion_model = flags_emotion['model']
     if spotter_model:
         bot.send_message(message.chat.id, f'Your model for spotter recognition - {spotter_model}')
     else:
         bot.send_message(message.chat.id, f'You did not pick a model for spotter recognition.')
-        bot.send_message(message.chat.id, message.from_user.id)
-
-
-@bot.message_handler(content_types=['text'])
-def get(message):
-    print('get message')
-    bot.send_message(message.chat.id, message.text)
+        #bot.send_message(message.chat.id, message.from_user.id)
+    if emotion_model:
+        bot.send_message(message.chat.id, f'Your model for emotion and gender recognition - {emotion_model}')
+    else:
+        bot.send_message(message.chat.id, f'You did not pick a model for emotion recognition.')
+        #bot.send_message(message.chat.id, message.from_user.id)
 
 
 @bot.message_handler(content_types=['voice'])
@@ -226,10 +256,16 @@ def get_audio(audio):
     process = subprocess.call(['del', src_filename], shell=True)
     src_filename = 'plot2.png'
     process = subprocess.call(['del', src_filename], shell=True)
-    
-    prediction_emotion = make_predict_emotion(emotion_cnn_1, flags_emotion)
-    gender, emotion = prediction_emotion.split('_')
-    bot.send_message(audio.chat.id, f'Your gender - {gender}, your emotion - {emotion}')
+    prediction_emotion = None
+    if flags_emotion['model'] == 'CNN_1':
+        prediction_emotion = make_predict_emotion(emotion_cnn_1, flags_emotion)
+    elif flags_emotion['model'] == 'CNN_2':
+        prediction_emotion = make_predict_emotion(emotion_cnn_2, flags_emotion)
+    else:
+        bot.send_message(audio.chat.id, 'You did not pick a model for emotion and gender recognition :(')
+    if prediction_emotion:
+        gender, emotion = prediction_emotion.split('_')
+        bot.send_message(audio.chat.id, f'Your gender - {gender}, your emotion - {emotion}')
     indicator, temp, ans = None, None, None
     if flags_spotter['model'] == 'CRNN':
         indicator, prediction_data, ans = make_predict_spotter(model_crnn, flags_spotter, 0.95)
